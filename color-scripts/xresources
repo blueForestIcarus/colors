@@ -1,0 +1,22 @@
+#!/bin/bash
+
+pp () {
+    printf "%-8s " "$1:" && printcolor $1 -n
+}
+ppl () {
+    printf "%-11s " "$1:" && printcolor $1 -n
+}
+
+sp () { printf "   "; }
+nl () { printf "\n"; }
+tp () { printf "            "; }
+
+pp color0; sp; pp color8; sp; ppl background; nl
+pp color1; sp; pp color9; sp; ppl foreground; nl
+pp color2; sp; pp color10; nl
+pp color3; sp; pp color11; nl
+pp color4; sp; pp color12; nl
+pp color5; sp; pp color13; nl
+pp color6; sp; pp color14; nl
+pp color7; sp; pp color15; nl
+
