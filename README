@@ -1,0 +1,21 @@
+printcolor command:
+    printcolor [-n] #00ff23 #prints hex color in terminal
+    printcolor [-n] color1 #gets color1 from xresources using xgetres, then prints that hex color 
+    
+    "-n" => no newline
+
+color-scripts and color command:
+    scripts layed out in tree in color-scripts
+    first set color-scripts dir
+        cd color-scripts
+        i colorscripts `pwd`
+    then execute scripts with color command
+        color icon blocks fancy
+            or
+        color icon/blocks/fancy
+
+    if color is given path which is directory it will look for .default symlink
+    if there is not .default, then first alphabetic result used
+
+    color -l lists colorscipts
+    color -l <path> lists colorscipts in path
