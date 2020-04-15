@@ -19,3 +19,8 @@ color-scripts and color command:
 
     color -l lists colorscipts
     color -l <path> lists colorscipts in path
+
+
+    color <path> -- <args> # to pass args to the color-script
+    try this:
+    color util colortest -- "CUSTOM TEXT"
