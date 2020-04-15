@@ -1,21 +1,24 @@
 #!/bin/bash
-#
-#   This file echoes a bunch of color codes to the 
-#   terminal to demonstrate what's available.  Each 
-#   line is the color code of one forground color,
-#   out of 17 (default + 16 escapes), followed by a 
-#   test use of that color on all nine background 
-#   colors (default + 8 escapes).
-#
+
+if [ "$1" == "--menu" ] && [ $# -eq 1 ]; then
+    colormenu
+    exit
+fi
 
 FILE=".default"
 F_ARG=
 L_ARG=
+X_ARG=
+M_ARG=
 ARG=
 go (){
     while [ ! -z "$1" ] ; do
         if [ "$1" = "-l" ]; then
             L_ARG=1
+        elif [ $1 = "-x" ]; then
+            X_ARG=1
+        elif [ $1 = "--menu" ]; then
+            M_ARG=1_show
         elif [ "$1" = "--" ]; then
             shift 
             ARG=("$@")
@@ -41,8 +44,13 @@ foo (){
         cd $1
         foo ".default"
     elif [ -f "$1" ]; then
-        chmod +x "`realpath $1`" 
-        exec "`realpath $1`" "${ARG[@]}"
+        F="`realpath $1`" 
+        if [ ! -z "$X_ARG" ]; then
+            echo "$F"
+        else
+            chmod +x $F
+            exec $F "${ARG[@]}"
+        fi
     else
         foo `find * | head -1`
     fi
@@ -65,7 +73,11 @@ fi
 
 if [ ! -z "$L_ARG" ] ; then
     find .
+elif [ ! -z "$M_ARG" ]; then
+    DIR="$(realpath --relative-to `i colorscripts` .)"
+    colormenu $DIR $FILE
 else
     foo $FILE
 fi
+
 exit

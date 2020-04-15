@@ -1,0 +1,425 @@
+#!/bin/bash
+
+TEMP=`mktemp`
+TEMP2=`mktemp`
+MENU=0
+
+YOFF=1
+XOFF=0
+
+OPID=$$
+
+lss (){
+    echo '.' && ls $@
+}
+
+LS="lss -t -1 --color=never" 
+cd `i colorscripts`
+
+correct () {
+    if ! [[ $DIR == ./* ]]; then
+        if [ "$DIR" != "." ]; then
+            DIR="./$DIR"
+        fi
+    fi
+}
+
+goto() {
+    if [ -z "$1" ]; then
+        n=1
+        DIR="."
+    else
+        DIR=$1
+        correct
+        UNIT=$2
+        n="`$LS "$DIR" | grep -n -xF "$UNIT" | cut -d ':' -f1`"
+        if [ -z "$n" ]; then
+            n=1
+        fi
+    fi
+}
+goto $1 $2
+
+FRAME=1  
+ORIGIN="."
+do_frame() {
+    FIND="find $ORIGIN -type f -not -path ./active -not -path '*/\.*'"
+    $FIND > .find
+    let FRAME+=1
+    if [ $FRAME -gt `$FIND | wc -l` ]; then 
+        FRAME=1 
+    fi
+    cd `i colorscripts`
+    A=`$FIND | tail -n +$FRAME | head -1`
+    goto "$(dirname $A)" "$(basename $A)"  
+}
+
+speed_select() {
+    case $1 in  
+        0 )
+            TIMEOUT=0
+            ;;
+        1 )
+            TIMEOUT=360
+            ;;
+        2 )
+            TIMEOUT=120
+            ;;
+        3 )
+            TIMEOUT=30
+            ;;
+        4 )
+            TIMEOUT=12
+            ;;
+        5 )
+            TIMEOUT=5
+            ;;
+        6 )
+            TIMEOUT=2
+            ;;
+        7 )
+            TIMEOUT=1
+            ;;
+        8 )
+            TIMEOUT=0.5
+            ;;
+        9 )
+            TIMEOUT=0.25
+            ;;
+    esac
+}
+speed_select 0
+
+back () {
+    if [ "$DIR" != "." ]; then
+        clear_menu
+        D="`realpath --relative-to $DIR/../ $DIR`"
+        DIR="`realpath --relative-to . $DIR/../`"
+        correct
+        
+        n=1
+        n="`$LS "$DIR" | grep -n -xF "$D" | cut -d ':' -f1`"
+        return 0
+    fi
+    return 1
+}
+
+forward () {
+    if [ -d "$DIR/$1" -a "$1" != "." ]; then
+        clear_menu
+        DIR="$DIR/$1"
+        n=1
+        return 0
+    fi
+    return 1
+    
+}
+ceol=$(tput el)
+clear_top () {
+    if [ $MENU -eq 0 ]; then
+        tput cup 0 0
+        for ((nn=0;nn<$m;nn++)); do
+            printf "%s\n\r" $ceol
+        done
+        tput cup 0 0
+    else
+        clear
+    fi
+}
+
+menu_show (){
+    if [ $MENU -eq 0 ]; then
+        cat < $TEMP
+        status_line
+    fi
+}
+
+clear_menu (){
+    tput cup $m 0
+    tput ed
+}
+
+top_status () {
+    tput cup $m 0
+    BN="[$n/$l] "
+    asdf=$(( $C - ${#BN} -5 ))
+    printf "== %-${asdf}s $BN\n" "$DIR/$UNIT"
+}
+
+print_opts (){
+    echo -e "\033[0m"
+    L=`tput lines`
+    C=`tput cols`
+    let "m=$L -2 -${l}"
+    top_status
+    echo "$OPTS" | while read -r UNIT; do
+        if [ -d "$DIR/$UNIT" ];then
+            NF="`find "$DIR/$UNIT"/* -type f | wc -l`" 
+            ND="`find "$DIR/$UNIT"/* -type d | wc -l`"
+            if [ "$UNIT" == "." ]; then
+                STR="."
+            else
+                STR="$UNIT*"
+            fi
+
+            if [ $ND -eq 0 ]; then 
+                printf "%-10s%s%s\n" "[$NF]" "$STR" $ceol
+            else
+                printf "%-10s%s%s\n" "[$NF-$ND]" "$STR" $ceol
+            fi
+        else
+            printf "%10s$UNIT%s\n" " " $ceol
+        fi
+
+    done | grep --color=always -e "`esc $UNIT`" -e "^"
+    fname="`color -x $DIR $UNIT`"
+    txt="== [$fname]"
+    SLL=${#txt}
+    if [ $(( $C - $SLL -12 )) -lt 0 ]; then
+        nnnn=$(( $C -20))
+        txt="== [...${fname: -$nnnn}]"
+        SLL=${#txt}
+    fi
+    printf "$txt"
+    tput cup 0 0 #magic that makes it not break
+}
+
+status_line() {
+    tput cup $L $SLL
+    nnn=$(( $C - $SLL -3 ))
+    printf " %${nnn}s" "$(status)" 
+    tput cup 0 0 #magic that makes it not break
+}
+ 
+status () {
+    if [ "$TIMEOUT" != "0" ] ; then 
+        printf "^$TIMEOUT " 
+    fi
+    if [ $YOFF -ne 1 ] ; then 
+        printf "+$(($YOFF-1)) " 
+    fi
+}
+
+COUNTER=0
+C2=0
+CFILE=/dev/shm/colors.counter
+CONCURRENT=0
+color_run () {
+    if [ ! -z "$PID" ]; then
+        #kill $PID >/dev/null 2>&1
+        :
+    fi
+    let C2+=1
+    let COUNTER+=1
+    if [ $COUNTER -gt 9 ]; then
+        COUNTER=0
+    fi
+    echo "$C2" > $CFILE
+    TMP=/dev/shm/colors.$COUNTER.tmp
+    if [ $CONCURRENT -eq 1 ]; then
+        (color $1 $2 > $TMP ; color_wakeup $TMP) 
+    else
+        (color $1 $2 > $TMP ; color_wakeup $TMP) & #i made semaphors work in bash a I am a god
+    fi
+    PID=$!
+}
+
+color_wakeup() {
+    if [ $C2 -lt `cat $CFILE` ]; then 
+        exit
+    fi
+    if [ $MENU -eq 0 ]; then
+        HN=$m
+    else
+        HN=$L
+    fi
+    YOFFC=$YOFF
+    if [ $NAVEN -eq 0 ];then
+        YOFFC=1
+    fi
+
+    ( $FLOCK
+        clear_top
+        tput cup 0 0
+        cat < $1 | tee $TEMP2 | tac | tac | tail -n +$YOFFC | head -$HN
+        menu_show
+    ) 200>$LOCK  
+    rm -f $1
+
+}
+
+color_print  () {
+    tput cup 0 0
+    if [ $MENU -eq 0 ]; then
+        HN=$m
+    else
+        HN=$L
+    fi
+    YOFFC=$YOFF
+    if [ $NAVEN -eq 0 ];then
+        YOFFC=1
+    fi
+    a="$(cat < $TEMP2 | tac | tac | tail -n +$YOFFC | head -$HN)"
+
+    ( $FLOCK
+        if [ ! -z "$1" ]; then
+            clear_top
+        fi
+        echo "$a" 
+    ) 200>$LOCK  
+}
+
+LOCK=/dev/shm/colors.$OPID.lock
+FLOCK="flock -x -w 1 200"
+
+color_print_concurrent  () {
+    tput cup 0 0
+    if [ $MENU -eq 0 ]; then
+        cat < $TEMP2 | tac | tac | (clear_top && head -$m)
+    else
+        cat < $TEMP2 | tac | tac | (clear_top && head -$L)
+    fi
+}
+
+tput smcup
+tput civis
+stty -echo
+tput rmam
+
+help () {
+    QQQ=$CONCURRENT
+    CONCURRENT=1
+    color_run .instructions 
+    clear_menu
+    status_line
+    CONCURRENT=$QQQ
+}
+
+while true; do
+    l="`$LS "$DIR" | wc -l`"
+    let "n=(n%$l)"
+    if [ $n -lt 1 ]; then
+        n=$l
+    fi
+    OPTS="`$LS "$DIR"`"
+
+    UNIT=`echo "$OPTS" | head -$n | tail -1`    
+    print_opts > $TEMP
+
+
+    ( $FLOCK
+        menu_show
+    ) 200>$LOCK  
+
+    if [[ $DIR/$UNIT =~ ^./active ]]; then
+        NAVEN=0
+        if [ -z "$ENTER" ]; then
+            color_run .press_enter
+        else
+            color $DIR $UNIT
+            clear
+            menu_show
+            color_run .press_enter
+            ENTER=
+        fi
+    else
+        NAVEN=1
+        color_run $DIR $UNIT
+    fi
+    ENTER=
+
+    #menu_show #shouldn't do anything
+
+    while true; do
+        if [ "$TIMEOUT" == "0" ]; then
+            read -rsn1 key
+        else
+            if ! read -rsn1 -t $TIMEOUT key ; then
+                key=frame
+            fi
+        fi
+        #printf "|%s|" "$key"
+        case $key in 
+            q | Q )
+                tput rmcup
+                tput cnorm
+                stty echo
+                tput smam
+                rm $TEMP
+                rm $TEMP2
+                exit
+                ;;
+            j | s)
+                let n+=1
+                break
+                ;;
+            l | d) 
+                forward "$UNIT" && break
+                ;;
+            h | a)
+                back && break
+                ;;
+            k | w)
+                let n-=1
+                break
+                ;;
+            f | J )
+                if [ $NAVEN -eq 1 ]; then
+                    let YOFF+=1
+                    color_print yes
+                    status_line
+                fi
+                ;;
+            r | K )
+                if [ $NAVEN -eq 1 ]; then
+                    let YOFF-=1
+                    if [ $YOFF -lt 1 ]; then
+                        YOFF=1
+                    else
+                        color_print yes
+                        status_line
+                    fi
+                fi
+                ;;
+            = )
+                if [ $YOFF -ne 1 ]; then
+                    YOFF=1
+                    color_print yes
+                    status_line
+                fi
+                ;;
+            0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 ) 
+                if [ "$TIMEOUT" == "0" ] ; then
+                    ORIGIN=$DIR
+                fi
+                speed_select $key
+                status_line
+                ;;
+            '?' ) 
+                help
+                ;;
+            frame )
+                do_frame
+                break;
+                ;;
+            . )
+                let MENU=!MENU
+                clear_menu
+                color_print
+                menu_show
+                ;;
+            '' ) 
+                ENTER=1
+                break
+                ;;
+        esac
+    done
+done
+
+#should be unreachable
+tput rmcup
+tput cnorm
+stty echo
+rm $TEMP
+rm $TEMP2
+exit
