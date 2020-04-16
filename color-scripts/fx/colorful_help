@@ -1,0 +1,98 @@
+#!/bin/bash
+
+if [ -z "$COLORTERM" ];then
+    COLORTERM='tput colors'
+fi
+
+print() {
+    printf "\033[38;2;%d;%d;%dm" 0 0 0;
+    printf "\033[48;2;%d;%d;%dm" 255 255 255;
+    printf "%s\033[0m" "$1";
+}
+
+print "24bit " && echo "$(color util truecolor rainbow)"
+print "B&W   " && echo "$(color util truecolor greyscale)"
+export C_BLK="#FFFFFF"
+export F_STAIR=
+echo "terminal features: $COLORTERM" | color fx disappear -- 30
+echo
+#echo "unicode : "
+#echo "graphic : "
+#echo "mouse   : "
+
+lolcat -p 1 -F 0.1 -t -f << "EOF"
+
+                                                 
+     ██████╗ ██████╗ ██╗      ██████╗ ██████╗         
+    ██╔════╝██╔═══██╗██║     ██╔═══██╗██╔══██╗        
+    ██║     ██║   ██║██║     ██║   ██║██████╔╝        
+    ██║     ██║   ██║██║     ██║   ██║██╔══██╗        
+    ╚██████╗╚██████╔╝███████╗╚██████╔╝██║  ██║        
+     ╚═════╝ ╚═════╝ ╚══════╝ ╚═════╝ ╚═╝  ╚═╝        
+                                                      
+                  ███╗   ███╗███████╗███╗   ██╗██╗   ██╗
+                  ████╗ ████║██╔════╝████╗  ██║██║   ██║
+    █████╗ █████╗ ██╔████╔██║█████╗  ██╔██╗ ██║██║   ██║
+    ╚════╝ ╚════╝ ██║╚██╔╝██║██╔══╝  ██║╚██╗██║██║   ██║
+                  ██║ ╚═╝ ██║███████╗██║ ╚████║╚██████╔╝
+                  ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝ ╚═════╝ 
+                                                 
+EOF
+
+END=10
+
+export F_EDGE=
+export F_STAIR=
+export WAVEMODE=1
+
+echo
+export C_BLK="#FFEF00"
+cat << "EOF" | color fx disappear -- "$END"
+ VIEWPORT:
+    space | enter - reload current script
+                    [for active scripts] enter/run script
+    
+    . - show/hide the selection menu
+    ? - show this help text (j or k to escape)
+
+EOF
+
+export C_BLK="#FF0900"
+cat << "EOF" | color fx disappear -- "$END"
+ EXIT/QUIT
+    q | Q - quit application
+
+EOF
+
+export C_BLK="#FF7F00"
+cat << "EOF" | color fx disappear -- "$END"
+ NAVIGATION: 
+    There are two sets of keybinds.
+    hjkl : vim keybinds
+    asdf : normal keybindings
+    
+    h | a - exit folder (enter parent folder)
+    j | s - move selection down
+    k | w - move selection up
+    l | d - enter selected folder
+
+EOF
+
+export C_BLK="#00F11D"
+cat << "EOF" | color fx disappear -- "$END"
+ SCROLL:
+    J | f - scroll down
+    K | r - scroll up
+    =     - reset scroll to top
+
+EOF
+
+
+export C_BLK="#A800FF"
+cat << "EOF" | color fx disappear -- "$END"
+[ author: Erich Spaker <erichspaker@gmail.com>
+[ date:   April 2020
+[ git:    https://github.com/blueForestIcarus/colors.git
+[ logo:   http://patorjk.com/software/taag/#p=display&f=ANSI%20Shadow
+EOF
+

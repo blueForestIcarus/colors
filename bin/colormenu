@@ -231,17 +231,17 @@ color_wakeup() {
     if [ $MENU -eq 0 ]; then
         HN=$m
     else
-        HN=$L
+        HN=$((L-1))
     fi
     YOFFC=$YOFF
     if [ $NAVEN -eq 0 ];then
-        YOFFC=1
+        YOFFC=0
     fi
 
     ( $FLOCK
         clear_top
         tput cup 0 0
-        cat < $1 | tee $TEMP2 | tac | tac | tail -n +$YOFFC | head -$HN
+        cat < $1 | tee $TEMP2 | tac | tac | tail -n +$YOFFC | head -$HN  
         menu_show
     ) 200>$LOCK  
     rm -f $1
@@ -253,11 +253,11 @@ color_print  () {
     if [ $MENU -eq 0 ]; then
         HN=$m
     else
-        HN=$L
+        HN=$((L-1))
     fi
     YOFFC=$YOFF
     if [ $NAVEN -eq 0 ];then
-        YOFFC=1
+        YOFFC=0
     fi
     a="$(cat < $TEMP2 | tac | tac | tail -n +$YOFFC | head -$HN)"
 
@@ -289,11 +289,14 @@ tput rmam
 help () {
     QQQ=$CONCURRENT
     CONCURRENT=1
-    color_run .instructions 
+    let MENU=1
+    let MENUEXIT=1
     clear_menu
-    status_line
+    color_run .instructions 
     CONCURRENT=$QQQ
 }
+        
+NAVEN=1
 
 while true; do
     l="`$LS "$DIR" | wc -l`"
@@ -307,28 +310,41 @@ while true; do
     print_opts > $TEMP
 
 
-    ( $FLOCK
-        menu_show
-    ) 200>$LOCK  
-
-    if [[ $DIR/$UNIT =~ ^./active ]]; then
-        NAVEN=0
-        if [ -z "$ENTER" ]; then
-            color_run .press_enter
-        else
-            color $DIR $UNIT
-            clear
-            menu_show
-            color_run .press_enter
-            ENTER=
-        fi
-    else
-        NAVEN=1
-        color_run $DIR $UNIT
-    fi
-    ENTER=
 
     #menu_show #shouldn't do anything
+    
+    if [ -z "$STARTUP" ];then
+        if [ -z "$1" ];then
+            help
+            STARTUP=True
+        fi
+    else
+        if [ ! -z "$MENUEXIT" ]; then
+            MENU=0
+            MENUEXIT=
+        fi
+        ( $FLOCK
+            menu_show
+        ) 200>$LOCK  
+
+        if [[ $DIR/$UNIT =~ ^./active ]]; then
+            NAVEN=0
+            if [ -z "$ENTER" ]; then
+                color_run .press_enter
+            else
+                color $DIR $UNIT
+                clear
+                menu_show
+                color_run .press_enter
+                ENTER=
+            fi
+        else
+            NAVEN=1
+            color_run $DIR $UNIT
+        fi
+        ENTER=
+
+    fi
 
     while true; do
         if [ "$TIMEOUT" == "0" ]; then
@@ -367,7 +383,7 @@ while true; do
                 if [ $NAVEN -eq 1 ]; then
                     let YOFF+=1
                     color_print yes
-                    status_line
+                    status_line #XXX
                 fi
                 ;;
             r | K )

@@ -1,0 +1,116 @@
+#!/bin/bash
+
+back=${C_BKG:-background}
+text=${C_TXT:-background}
+target=${C_END:-background}
+fore=${C_BLK:-foreground}
+
+eval `printcolor $text -rgb`
+TR=$R TB=$B TG=$G
+
+eval `printcolor $fore -rgb`
+FR=$R FB=$B FG=$G
+
+eval `printcolor $target -rgb`
+ER=$R EB=$B EG=$G
+
+eval `printcolor $back -rgb`
+
+distfade_config () {
+    dist=${1:-8}
+    fade=8;
+    s="█▓▒░";
+    if [[ $dist =~ [0-9]*:[0-9]* ]];then 
+        dist="`echo $1 | cut -d ':' -f1`"
+        fade="`echo $1 | cut -d ':' -f2`"
+    elif [[ $dist =~ [0-9]*:[0-9]*:.* ]]; then
+        dist="`echo $1 | cut -d ':' -f1`"
+        fade="`echo $1 | cut -d ':' -f2`"
+        s="`echo $1 | cut -d ':' -f3-`"
+    fi
+
+    if [ ! -z "$F_CHAOS" ]; then    
+        s="█▓###98u9h120937129938~~~";
+    elif [ ! -z "$F_STAIR" ]; then    
+        s="█▇▅▄▃▂▂▁▁▁";
+    elif [ ! -z "$F_EDGE" ]; then    
+        s="▜▟▛▙▚▞▗▘▖▝";
+    fi
+    
+    if [ -z "$fade" ]; then
+        fade="${#s}"
+    fi
+}
+
+distfade_config "$1"
+
+print() {
+    printf "\033[48;2;%d;%d;%dm" $FR $FG $FB;
+    printf "\033[38;2;%d;%d;%dm" $TR $TG $TB;
+    printf "%s\033[0m" "$1";
+}
+
+fader (){
+    awk -v s="$s" -v fade="${2:-$fade}" -v dist="${1:-$dist}" \
+        -v ER="$ER" -v EG="$EG" -v EB="$EB" \
+        -v R="$FR" -v G="$FG" -v B="$FB" \
+        -v RR="$R" -v RG="$G" -v RB="$B" \
+        'BEGIN{
+
+        l=length(s);
+        for (colnum = 1; colnum<=dist; colnum++) {
+            r = R + int((ER - R)*colnum/dist);
+            g = G + int((EG - G)*colnum/dist);
+            b = B + int((EB - B)*colnum/dist); 
+            nonfade= dist-fade
+            i = (colnum -1 - nonfade )
+            if ( i >= 0 ){
+                n = (i + 0.5)/fade * l            
+                c = substr(s,n,1);
+            }
+            else {
+                c = substr(s,0,1);
+            }
+            
+            printf "\033[48;2;%d;%d;%dm", RR,RG,RB;
+            printf "\033[38;2;%d;%d;%dm", r,g,b;
+            printf "%s\033[0m", c;
+        }
+        printf "\n";
+    }'
+}
+
+
+F=`mktemp`
+F2=`mktemp`
+rm -f $F $F2
+while IFS= read -r str; do
+    echo "$str" >> $F
+    STRIP="`echo "$str|" | col -b`"
+    a=${#STRIP}
+    max=$(( a > max ? a : max ))
+    echo "$a" >> $F2
+done
+
+while true; do
+    IFS= read -r str <&3 || break
+    IFS= read -r printedlen <&4 || break
+    space="$( printf "%*s" $(( $max - $printedlen )) "" )"
+    a=${#space}
+    if [ ! -z "$BLOCKMODE" ]; then
+        print "$str$space"
+        fader
+    elif [ ! -z "$WAVEMODE" ]; then
+        print "$str"
+        fader $(( dist + a ))  $(( dist + a )) 
+    elif [ ! -z "$FOGMODE" ]; then
+        print "$str"
+        fader $(( dist + a )) 
+    else
+        print "$str"
+        fader
+    fi
+done 3<$F 4<$F2
+
+rm $F
+rm $F2

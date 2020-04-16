@@ -1,7 +1,2 @@
 #!/bin/bash
-cat << "EOF"
-h
-j
-k
-l
-EOF
+cat "`i colorscripts`/.instructions_file" 

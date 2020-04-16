@@ -22,6 +22,8 @@ hex2rgb $TEXT
 
 if [ "$2" == "-n" ]; then
     printf "\x1b[48;2;%s;%s;%sm%s\x1b[0m" $r $g $b " $TEXT "
+elif [ "$2" == "-rgb" ]; then 
+    echo "R=$r G=$g B=$b"
 else
     printf "\x1b[48;2;%s;%s;%sm%s\x1b[0m" $r $g $b " $TEXT "
 fi
