@@ -1,10 +1,10 @@
 #!/bin/bash
 
 pp () {
-    printf "%-8s " "$1:" && printcolor $1 -n
+    printf "%-8s " "$1:" && printcolor $1
 }
 ppl () {
-    printf "%-11s " "$1:" && printcolor $1 -n
+    printf "%-11s " "$1:" && printcolor $1
 }
 
 sp () { printf "   "; }

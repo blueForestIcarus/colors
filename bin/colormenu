@@ -38,13 +38,17 @@ goto() {
         fi
     fi
 }
-goto $1 $2
+if [ ! -z "$1" ]; then
+    STARTUP=True
+    goto $1 $2
+else
+    goto
+fi
 
 FRAME=1  
 ORIGIN="."
 do_frame() {
     FIND="find $ORIGIN -type f -not -path ./active -not -path '*/\.*'"
-    $FIND > .find
     let FRAME+=1
     if [ $FRAME -gt `$FIND | wc -l` ]; then 
         FRAME=1 
@@ -298,6 +302,14 @@ help () {
         
 NAVEN=1
 
+cleanup() {
+    tput rmcup
+    tput cnorm
+    stty echo
+    tput smam
+    rm $TEMP
+    rm $TEMP2
+}
 while true; do
     l="`$LS "$DIR" | wc -l`"
     let "n=(n%$l)"
@@ -308,8 +320,6 @@ while true; do
 
     UNIT=`echo "$OPTS" | head -$n | tail -1`    
     print_opts > $TEMP
-
-
 
     #menu_show #shouldn't do anything
     
@@ -357,12 +367,7 @@ while true; do
         #printf "|%s|" "$key"
         case $key in 
             q | Q )
-                tput rmcup
-                tput cnorm
-                stty echo
-                tput smam
-                rm $TEMP
-                rm $TEMP2
+                cleanup
                 exit
                 ;;
             j | s)
@@ -424,6 +429,20 @@ while true; do
                 color_print
                 menu_show
                 ;;
+            p )
+                cleanup
+                echo $DIR/$UNIT
+                color $DIR $UNIT
+                exit
+                ;;
+            P )
+                cleanup
+                echo $DIR/$UNIT
+                tput rmam
+                color $DIR $UNIT
+                tpur smam
+                exit
+                ;;
             '' ) 
                 ENTER=1
                 break
@@ -432,10 +451,4 @@ while true; do
     done
 done
 
-#should be unreachable
-tput rmcup
-tput cnorm
-stty echo
-rm $TEMP
-rm $TEMP2
-exit
+cleanup

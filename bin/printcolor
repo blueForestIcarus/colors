@@ -1,5 +1,19 @@
 #!/bin/bash
 
+case "$1" in 
+    -FG | -fg )
+        FG=1
+        shift
+        ;;
+    -BG | -bg )
+        FG=0
+        shift
+        ;;
+    * )
+        FG=0
+        ;;
+esac
+
 if [[ $1 =~ ^#.* ]]; then
     TEXT=$1
 else
@@ -20,10 +34,16 @@ hex2rgb() {
 
 hex2rgb $TEXT
 
-if [ "$2" == "-n" ]; then
-    printf "\x1b[48;2;%s;%s;%sm%s\x1b[0m" $r $g $b " $TEXT "
-elif [ "$2" == "-rgb" ]; then 
-    echo "R=$r G=$g B=$b"
+if [ ! -z "$2" ]; then
+    PTEXT="$2"
 else
-    printf "\x1b[48;2;%s;%s;%sm%s\x1b[0m" $r $g $b " $TEXT "
+    PTEXT=" $TEXT "
+fi
+
+if [ "$2" == "-rgb" ]; then 
+    echo "R=$r G=$g B=$b"
+elif [ $FG -eq 1 ]; then 
+    printf "\x1b[38;2;%s;%s;%sm%s\x1b[0m" $r $g $b "$PTEXT"
+else
+    printf "\x1b[48;2;%s;%s;%sm%s\x1b[0m" $r $g $b "$PTEXT"
 fi

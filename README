@@ -24,3 +24,12 @@ color-scripts and color command:
     color <path> -- <args> # to pass args to the color-script
     try this:
     color util colortest -- "CUSTOM TEXT"
+
+    COLORSCRIPT MENU:
+        color --menu 
+            or
+        colormenu
+
+        will open an interactive browser for all your colorscripts.
+        get instructions by pressing "?", 
+        press "q" to quit
